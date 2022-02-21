@@ -4,31 +4,46 @@ import getProvider from './utils/getProvider';
 export default async function addContract(
   id, contract, arbiter, beneficiary, depositor, value, isHistoric = false
 ) {
-  const buttonId = `approve-${id}`;
+  const depositButtonId = `deposit-${id}`;
+  const approveButtonId = `approve-${id}`;
 
   const container = document.getElementById("container");
-  container.innerHTML += createHTML(buttonId, arbiter, beneficiary, depositor, value);
+  container.innerHTML += createHTML(
+    depositButtonId, approveButtonId, arbiter, beneficiary, depositor, value, isHistoric
+  );
 
   if (isHistoric) {
-    document.getElementById(buttonId).className = "complete";
-    document.getElementById(buttonId).innerText = "✓ It's been approved!";
+    document.getElementById(approveButtonId).className = "complete";
+    document.getElementById(approveButtonId).innerText = "✓ It's been approved!";
   }
   else {
     contract.on('Approved', () => {
-      document.getElementById(buttonId).className = "complete";
-      document.getElementById(buttonId).innerText = "✓ It's been approved!";
+      const depositGroup = document.getElementById(depositButtonId);
+      depositGroup.parentNode.removeChild(depositGroup);
+
+      document.getElementById(approveButtonId).className = "complete";
+      document.getElementById(approveButtonId).innerText = "✓ It's been approved!";
     });
 
-    document.getElementById(buttonId).addEventListener("click", async () => {
+    document.getElementById(approveButtonId).addEventListener("click", async () => {
       const provider = getProvider();
       const signer = provider.getSigner(arbiter);
-      value = ethers.BigNumber.from(value.toString());
-      await contract.connect(signer).approve({ value });
+      await contract.connect(signer).approve();
     });
   }
 }
 
-function createHTML(buttonId, arbiter, beneficiary, depositor, value) {
+function createHTML(
+  depositButtonId, approveButtonId, arbiter, beneficiary, depositor, value, isHistoric
+) {
+  const depositGroup = isHistoric ? '' :
+    `<div class="container-deposit-group">
+      <div class="button button-deposit container-button-deposit" id="${depositButtonId}">
+        Deposit
+      </div>
+      <div class="container-text-deposit"><input type="text" class="text-deposit" id="eth" placeholder="ETH" /></div>
+    </div>`;    
+
   return `
     <div class="existing-contract">
       <ul className="fields">
@@ -46,13 +61,11 @@ function createHTML(buttonId, arbiter, beneficiary, depositor, value) {
         </li>
         <li>
           <div> Value </div>
-          <div> ${value} </div>
+          <div> ${value} ETH</div>
         </li>
-        <div class="button button-approve" id="${buttonId}">
+        ${depositGroup}
+        <div class="button button-approve" id="${approveButtonId}">
           Approve
-        </div>
-        <div class="button button-deposit" id="${buttonId}">
-          Deposit
         </div>
       </ul>
     </div>

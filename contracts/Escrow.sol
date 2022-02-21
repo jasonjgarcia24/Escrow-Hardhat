@@ -18,11 +18,12 @@ contract Escrow {
         uint256 _value
     );
 
-    event Desposit(
+    event Deposit(
         address indexed _arbiter,
         address indexed _beneficiary,
         address indexed _depositor,
-        uint256 _value
+        uint256 _value,
+        uint256 _balance
     );
 
     constructor (address _arbiter, address payable _beneficiary, address _depositor) {
@@ -32,12 +33,12 @@ contract Escrow {
         state = States.WAITING_FUNDING;
     }
 
-    // function deposit() external payable onlyDepositor, onlyUnpaid {
-    //     state = States.FUNDED;
-    //     emit Deposit(arbiter, beneficiary, depositor, msg.value);
-    // }
+    function deposit() internal {
+        state = States.FUNDED;
+        emit Deposit(arbiter, beneficiary, depositor, msg.value, address(this).balance);
+    }
 
-    function approve() external onlyArbiter, onlyUnpaid {
+    function approve() external onlyArbiter onlyUnpaid {
         state = States.FUNDED;
         emit Approved(arbiter, beneficiary, depositor, address(this).balance);
 
@@ -49,6 +50,11 @@ contract Escrow {
         uint256 _value = address(this).balance;
         beneficiary.transfer(_value);
         state = States.PAID;
+    }
+
+    receive() external payable onlyDepositor onlyUnpaid {
+        require(msg.value > 0, "A deposit value must be nonzero.");
+        deposit();
     }
 
     modifier onlyDepositor() {
@@ -63,9 +69,11 @@ contract Escrow {
 
     modifier onlyUnpaid() {
         require(state != States.PAID, "This contract has already been paid.");
+        _;
     }
 
     modifier onlyFunded() {
         require(state == States.FUNDED, "This contract has not been funded yet.");
+        _;
     }
 }

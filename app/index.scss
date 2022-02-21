@@ -88,3 +88,28 @@ input[type="text"] {
   color: #5aa75a;
   text-align: center;
 }
+
+.container-deposit-group {
+  margin: 20px 0 0 0;
+  padding: 0;
+  width: 100%;
+  display: flex;
+}
+
+.container-button-deposit {
+  margin: 2px 20px 2px 20px;
+  width: 100px;
+  float: left;
+  text-decoration: none;
+}
+
+.container-text-deposit {
+    margin: 0 20px 0 0;
+    width: 100%;
+    float: left;
+    text-decoration: none;
+}
+
+.text-deposit {
+  width: 100%;
+}
