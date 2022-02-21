@@ -1,0 +1,7 @@
+MNEMONIC = '<mnemonic>'
+
+ALCHEMY_RINKEBY_KEY = '<api key>'
+ALCHEMY_RINKEBY_URL = '<api url>'
+
+GANACHE_CONTRACT_ADDRESS = '<ganache contract address>'
+RINKEBY_CONTRACT_ADDRESS = '<rinkeby contract address>'

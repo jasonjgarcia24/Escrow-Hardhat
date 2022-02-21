@@ -1,0 +1,90 @@
+body {
+  background-color: #333;
+  color: whitesmoke;
+  display: flex;
+  font-family: 'Muli', sans-serif;
+}
+
+.contract, .existing-contracts {
+  background-color: #111;
+  margin: 20px;
+  width: 50%;
+  padding: 40px;
+  border: 1px solid #777;
+}
+
+h1 {
+  margin: 10px;
+  padding: 10px;
+  border-bottom: 1px solid #777;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  text-transform: uppercase;
+  color: #aaa;
+  margin: 20px;
+}
+
+input[type="text"] {
+  background-color: #ddd;
+  padding: 6px;
+  font-size: 18px;
+}
+
+.button {
+  // background-color: #f58427;
+  color: white;
+  text-align: center;
+  font-weight: bold;
+  text-transform: uppercase;
+  margin: 20px;
+  padding: 9px 25px;
+  font-size: 14px;
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+
+.button-deploy {
+  background-color: #FF33B5; // pink
+}
+
+.button-transact {
+  background-color: #F58427; // orange
+}
+
+.button-approve {
+  background-color: #3371FF; // blue
+}
+
+.button-deposit {
+  background-color: #168B4F; // green
+}
+
+.existing-contract ul {
+  padding: 10px;
+  margin: 20px;
+  background-color: #333;
+  border: 1px solid #777;
+}
+
+.existing-contract ul > li {
+  list-style: none;
+  display: flex;
+  margin: 10px;
+}
+
+.existing-contract ul > li > div {
+  margin: 0 5px;
+}
+
+.existing-contract ul > li > :first-child {
+  width: 90px;
+  font-weight: bold;
+}
+
+.existing-contract .complete {
+  color: #5aa75a;
+  text-align: center;
+}

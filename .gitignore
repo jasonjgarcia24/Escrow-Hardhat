@@ -1,0 +1,10 @@
+!.gitignore
+dist
+cache
+.parcel-cache
+.cache
+node_modules
+artifacts
+app/dist
+app/artifacts
+.env
