@@ -8,8 +8,6 @@ contract EscrowFactory {
     Escrow private escrow;
     address public owner;
 
-    mapping(address => address) public contracts;
-
     event DeployedFactory(address indexed escrowFactory, address owner);
     event DeployedEscrow(address indexed depositor, address escrow);
 
