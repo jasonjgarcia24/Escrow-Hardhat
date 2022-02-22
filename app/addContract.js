@@ -1,4 +1,5 @@
 import { ethers } from 'ethers';
+import deposit from './deposit';
 import getProvider from './utils/getProvider';
 
 export default async function addContract(
@@ -6,11 +7,11 @@ export default async function addContract(
 ) {
   const depositButtonId = `deposit-${id}`;
   const approveButtonId = `approve-${id}`;
+  const depositUpgradeId = `eth-upgrad-${id}`;
+  const valueId = `value-${id}`;
 
   const container = document.getElementById("container");
-  container.innerHTML += createHTML(
-    depositButtonId, approveButtonId, arbiter, beneficiary, depositor, value, isHistoric
-  );
+  container.innerHTML += createHTML(id, arbiter, beneficiary, depositor, value, isHistoric);
 
   if (isHistoric) {
     document.getElementById(approveButtonId).className = "complete";
@@ -18,8 +19,11 @@ export default async function addContract(
   }
   else {
     contract.on('Approved', () => {
-      const depositGroup = document.getElementById(depositButtonId);
-      depositGroup.parentNode.removeChild(depositGroup);
+      const depositButton = document.getElementById(depositButtonId);
+      depositButton.parentNode.removeChild(depositButton);
+
+      const depositUpgradeGroup = document.getElementById(depositUpgradeId);
+      depositUpgradeGroup.parentNode.removeChild(depositUpgradeGroup);
 
       document.getElementById(approveButtonId).className = "complete";
       document.getElementById(approveButtonId).innerText = "✓ It's been approved!";
@@ -30,18 +34,36 @@ export default async function addContract(
       const signer = provider.getSigner(arbiter);
       await contract.connect(signer).approve();
     });
+
+    document.getElementById(depositButtonId).addEventListener("click", async () => {
+      const provider = getProvider();
+      const signer = provider.getSigner(0);
+      const escrowAddress = contract.address;
+      
+      // Deposit funds to Escrow
+      let value = document.getElementById(depositUpgradeId).value;
+      value = ethers.BigNumber.from(ethers.utils.parseEther(value));
+      await deposit(escrowAddress, signer, value);
+
+      // Display updated Escrow balance
+      const newBalance = await provider.getBalance(escrowAddress);
+      document.getElementById(valueId).innerHTML = ethers.utils.formatEther(newBalance);
+    });
   }
 }
 
-function createHTML(
-  depositButtonId, approveButtonId, arbiter, beneficiary, depositor, value, isHistoric
-) {
+function createHTML(id, arbiter, beneficiary, depositor, value, isHistoric) {
+  const depositButtonId = `deposit-${id}`;
+  const approveButtonId = `approve-${id}`;
+  const depositUpgradeId = `eth-upgrad-${id}`;
+  const valueId = `value-${id}`;
+
   const depositGroup = isHistoric ? '' :
     `<div class="container-deposit-group">
       <div class="button button-deposit container-button-deposit" id="${depositButtonId}">
         Deposit
       </div>
-      <div class="container-text-deposit"><input type="text" class="text-deposit" id="eth" placeholder="ETH" /></div>
+      <div class="container-text-deposit"><input type="text" class="text-deposit" id="${depositUpgradeId}" placeholder="ETH" /></div>
     </div>`;    
 
   return `
@@ -61,7 +83,7 @@ function createHTML(
         </li>
         <li>
           <div> Value </div>
-          <div> ${value} ETH</div>
+          <div id="${valueId}"> ${value} ETH</div>
         </li>
         ${depositGroup}
         <div class="button button-approve" id="${approveButtonId}">
