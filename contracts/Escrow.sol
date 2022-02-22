@@ -23,7 +23,7 @@ contract Escrow {
         address indexed _beneficiary,
         address indexed _depositor,
         uint256 _value,
-        uint256 _balance
+        uint256 _balance,
     );
 
     constructor (address _arbiter, address payable _beneficiary, address _depositor) {

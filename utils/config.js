@@ -13,6 +13,6 @@ module.exports = {
         MAINNET: '1',
     },
     CONTRACT: {
-        GANACHE: '0xff4B18E3A859e52F3dBA5755bE35240C8Df358fe'
+        GANACHE: '0xeF9f901Aae14a118B696AcdE2429AFcC80b4AE23'
     }
 }

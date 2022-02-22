@@ -47,7 +47,7 @@ export default async function addContract(
 
       // Display updated Escrow balance
       const newBalance = await provider.getBalance(escrowAddress);
-      document.getElementById(valueId).innerHTML = ethers.utils.formatEther(newBalance);
+      document.getElementById(valueId).innerHTML = ethers.utils.formatEther(newBalance) + ' ETH';
     });
   }
 }

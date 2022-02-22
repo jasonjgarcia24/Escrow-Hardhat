@@ -11,8 +11,9 @@ import { NETWORK, CONTRACT } from '../utils/config';
 
 let NUM_CONTRACTS = 0;
 
-async function getActiveContracts() {
+async function getEscrows() {
   const provider = getProvider();
+  const signer = provider.getSigner(0);
 
   const latestBlock = await provider.getBlockNumber();
   const block0 = ethers.utils.hexlify(0);
@@ -27,52 +28,17 @@ async function getActiveContracts() {
   });
  
   factoryLogs.map(async (factoryLog) => {
-    const escrowAddress = ethers.utils.hexStripZeros(factoryLog.data, 32);   
+    const escrowAddress = ethers.utils.hexStripZeros(factoryLog.data, 32);
+    const escrowContract = new ethers.Contract(escrowAddress, Escrow.abi, signer);
+    const escrowBalance = ethers.utils.formatEther(await provider.getBalance(escrowAddress));
+    const isHistoric = escrowBalance === '0.0';
+    const eventName = isHistoric ? 'Approved' : 'Deposit';
+
     const logs = await provider.getLogs({
       address: escrowAddress,
       fromBlock: block0,
       topics: [
-        getEventSignature(Escrow.abi, 'Approved'),
-      ]
-    });
-
-    console.log('LOG: ', logs)
-
-    const arbiter = ethers.utils.hexStripZeros(logs[0].topics[1], 32);
-    const beneficiary = ethers.utils.hexStripZeros(logs[0].topics[2], 32);
-    const depositor = ethers.utils.hexStripZeros(logs[0].topics[3], 32);
-    const value = ethers.utils.formatEther(
-      ethers.utils.hexStripZeros(logs[0].data.match(/.{1,66}/g)[0])
-    ) + ' ETH';
-
-    addContract(++NUM_CONTRACTS, escrowAddress, arbiter, beneficiary, depositor, value, true);
-  });
-}
-
-async function getApprovedContracts() {
-  const provider = getProvider();
-
-  const latestBlock = await provider.getBlockNumber();
-  const block0 = ethers.utils.hexlify(0);
-  
-  const factoryLogs = await provider.getLogs({
-    address: CONTRACT[NETWORK],
-    fromBlock: block0,
-    topics: [
-      getEventSignature(EscrowFactory.abi, 'DeployedEscrow'),
-      null,
-    ]
-  });
-
-  console.log('ALL LOGS: ', factoryLogs);
- 
-  factoryLogs.map(async (factoryLog) => {
-    const escrowAddress = ethers.utils.hexStripZeros(factoryLog.data, 32);   
-    const logs = await provider.getLogs({
-      address: escrowAddress,
-      fromBlock: block0,
-      topics: [
-        getEventSignature(Escrow.abi, 'Approved'),
+        getEventSignature(Escrow.abi, eventName),
       ]
     });
 
@@ -84,7 +50,7 @@ async function getApprovedContracts() {
         ethers.utils.hexStripZeros(logs[0].data.match(/.{1,66}/g)[0])
       );
 
-      addContract(++NUM_CONTRACTS, escrowAddress, arbiter, beneficiary, depositor, value, true);
+      addContract(++NUM_CONTRACTS, escrowContract, arbiter, beneficiary, depositor, escrowBalance, isHistoric);
     }
   });
 }
@@ -97,5 +63,5 @@ document.getElementById("transact").addEventListener("click", async () => {
   NUM_CONTRACTS = await deployEscrow(NUM_CONTRACTS);
 });
 
-getApprovedContracts()
+getEscrows()
   .then(() => console.log('--- FIN ---'))
