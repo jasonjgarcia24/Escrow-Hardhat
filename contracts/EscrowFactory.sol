@@ -7,17 +7,27 @@ import "hardhat/console.sol";
 contract EscrowFactory {
     Escrow private escrow;
     address public owner;
+    uint256 public blockNumber;
 
-    event DeployedFactory(address indexed escrowFactory, address owner);
-    event DeployedEscrow(address indexed depositor, address escrow);
+    event DeployedFactory(address indexed _escrowFactory, address _owner, uint256 _blockNumber);
+    event DeployedEscrow(address indexed _depositor, address _escrow);
 
     constructor() {
         owner = msg.sender;
-        emit DeployedFactory(address(this), msg.sender);
+        blockNumber = block.number;
+        emit DeployedFactory(address(this), msg.sender, blockNumber);
     }
 
-    function deployEscrow(address _arbiter, address payable _beneficiary) external {
+    function deployEscrow(address _arbiter, address payable _beneficiary) external onlyOwner {
+        require(msg.sender != _arbiter, "Contract deployer cannot be the arbiter.");
+        require(msg.sender != _beneficiary, "Contract deployer cannot be the beneficiary.");
+        
         escrow = new Escrow(_arbiter, _beneficiary, msg.sender);
         emit DeployedEscrow(msg.sender, address(escrow));
+    }
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "You are not authorized.");
+        _;
     }
 }

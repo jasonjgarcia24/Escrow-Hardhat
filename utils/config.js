@@ -13,6 +13,9 @@ module.exports = {
         MAINNET: '1',
     },
     CONTRACT: {
-        GANACHE: '0xeF9f901Aae14a118B696AcdE2429AFcC80b4AE23'
+        GANACHE: '0x299db7E1f328049464115A9D281346b14A5C666d'
+    },
+    BLOCK: {
+        GANACHE: 24
     }
 }

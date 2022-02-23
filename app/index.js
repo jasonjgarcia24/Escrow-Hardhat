@@ -7,36 +7,37 @@ import addContract from './addContract';
 import ethers from 'ethers';
 import getProvider from './utils/getProvider';
 import getEventSignature from './utils/getEventSignature';
-import { NETWORK, CONTRACT } from '../utils/config';
+import { NETWORK, CONTRACT, BLOCK } from '../utils/config';
 
 let NUM_CONTRACTS = 0;
 
 async function getEscrows() {
   const provider = getProvider();
   const signer = provider.getSigner(0);
+  const signerAddress = await signer.getAddress();
 
+  const escrowFactoryContract = new ethers.Contract(CONTRACT[NETWORK], EscrowFactory.abi, signer);
   const latestBlock = await provider.getBlockNumber();
   const block0 = ethers.utils.hexlify(0);
-  
+
   const factoryLogs = await provider.getLogs({
     address: CONTRACT[NETWORK],
-    fromBlock: block0,
+    fromBlock: BLOCK[NETWORK],
     topics: [
       getEventSignature(EscrowFactory.abi, 'DeployedEscrow'),
-      null,
     ]
   });
  
-  factoryLogs.map(async (factoryLog) => {
-    const escrowAddress = ethers.utils.hexStripZeros(factoryLog.data, 32);
+  factoryLogs.forEach(async factoryLog => {
+    const escrowAddress = ethers.utils.hexStripZeros(factoryLog.data.match(/.{1,66}/g)[0], 32);
     const escrowContract = new ethers.Contract(escrowAddress, Escrow.abi, signer);
-    const escrowBalance = ethers.utils.formatEther(await provider.getBalance(escrowAddress));
+    const escrowBalance = ethers.utils.formatEther(await provider.getBalance(escrowAddress));   
     const isHistoric = escrowBalance === '0.0';
     const eventName = isHistoric ? 'Approved' : 'Deposit';
 
     const logs = await provider.getLogs({
       address: escrowAddress,
-      fromBlock: block0,
+      fromBlock: factoryLog.blockNumber,
       topics: [
         getEventSignature(Escrow.abi, eventName),
       ]
@@ -50,7 +51,7 @@ async function getEscrows() {
         ethers.utils.hexStripZeros(logs[0].data.match(/.{1,66}/g)[0])
       );
 
-      addContract(++NUM_CONTRACTS, escrowContract, arbiter, beneficiary, depositor, escrowBalance, isHistoric);
+      addContract(++NUM_CONTRACTS, escrowContract, arbiter, beneficiary, depositor, value, isHistoric);
     }
   });
 }

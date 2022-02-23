@@ -24,7 +24,7 @@ export default async function deployEscrow(numContracts) {
   const topic = contract.interface.getEventTopic('DeployedEscrow');
   const log = receipt.logs.find(x => x.topics.indexOf(topic) >= 0);
   const deployedEvent = contract.interface.parseLog(log);
-  const escrowAddress = deployedEvent.args['escrow']);
+  const escrowAddress = deployedEvent.args['_escrow']);
   const escrowContract = new ethers.Contract(escrowAddress, Escrow.abi, signer);
 
   // Deposit funds to Escrow
