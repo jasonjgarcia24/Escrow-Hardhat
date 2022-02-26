@@ -1,6 +1,6 @@
- import Escrow from './artifacts/contracts/Escrow.sol/Escrow.json';
+import Escrow from './artifacts/contracts/Escrow.sol/Escrow.json';
 
- export default async function deposit(escrowAddress, signer, value) {
+export default async function deposit(escrowAddress, signer, value) {
     console.log('DEPOSITING TO: ', escrowAddress);
 
     // Get instance of Escrow contract
@@ -9,4 +9,4 @@
         value: value
     };
     await signer.sendTransaction(rawTx);
- }
+}

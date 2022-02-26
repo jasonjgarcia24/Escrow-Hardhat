@@ -46,6 +46,11 @@ input[type="text"] {
   cursor: pointer;
 }
 
+.button:active {  
+  transform: scale(0.98);
+  box-shadow: 3px 2px 22px 1px rgba(0, 0, 0, 0.24);
+}
+
 .button-deploy {
   background-color: #FF33B5; // pink
 }
@@ -56,6 +61,7 @@ input[type="text"] {
 
 .button-approve {
   background-color: #3371FF; // blue
+
 }
 
 .button-deposit {
@@ -65,8 +71,14 @@ input[type="text"] {
 .existing-contract ul {
   padding: 10px;
   margin: 20px;
+  min-width: 500px;
   background-color: #333;
   border: 1px solid #777;
+}
+
+.existing-contracts {
+  overflow-y: auto;
+  max-height: 100%;
 }
 
 .existing-contract ul > li {

@@ -12,10 +12,10 @@ module.exports = {
         KOVAN: '42',
         MAINNET: '1',
     },
-    // CONTRACT: {
-    //     GANACHE: '0x406E4CCC6b481c044069a52Ee1e252e78788CdD3'
-    // },
-    // BLOCK: {
-    //     GANACHE: 59
-    // }
+    CONTRACT: {
+        GANACHE: '0x7B5A2d0632b753876465192CD4112B7634109d30'
+    },
+    BLOCK: {
+        GANACHE: 2
+    }
 }

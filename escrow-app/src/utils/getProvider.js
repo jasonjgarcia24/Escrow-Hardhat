@@ -1,5 +1,5 @@
-import ethers from 'ethers';
-import { NETWORK, RPC_PORT } from '../../utils/config';
+import { ethers } from 'ethers';
+import { NETWORK, RPC_PORT } from './config';
 
 
 export default function getProvider() {
@@ -13,5 +13,5 @@ export default function getProvider() {
             provider = new ethers.providers.AlchemyProvider('rinkeby', process.env.ALCHEMY_RINKEBY_KEY);
     }
 
-return provider;
+    return provider;
 };

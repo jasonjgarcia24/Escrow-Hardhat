@@ -3,7 +3,7 @@ import Escrow from './artifacts/contracts/Escrow.sol/Escrow.json';
 import EscrowFactory from './artifacts/contracts/EscrowFactory.sol/EscrowFactory.json';
 import deployEscrow from './deployEscrow';
 import deployEscrowFactory from './deployEscrowFactory';
-import addContract from './addContract';
+import { addContract, approveCallback } from './addContract';
 import ethers from 'ethers';
 import getProvider from './utils/getProvider';
 import getEventSignature from './utils/getEventSignature';
@@ -27,20 +27,29 @@ async function getEscrows() {
       getEventSignature(EscrowFactory.abi, 'DeployedEscrow'),
     ]
   });
- 
-  factoryLogs.forEach(async factoryLog => {
-    const escrowAddress = ethers.utils.hexStripZeros(factoryLog.data.match(/.{1,66}/g)[0], 32);
+
+  const escrowObj = {
+    address: [],
+    contract: [],
+    balance: [],
+    arbiter: [],
+    beneficiary: [],
+    depositor: [],
+    eventName: [],
+    isHistoric: []
+  };
+
+  factoryLogs.forEach(async (factoryLog, i) => {
+    const escrowAddress = ethers.utils.hexStripZeros(factoryLog.topics[2].match(/.{1,66}/g)[0], 32);
     const escrowContract = new ethers.Contract(escrowAddress, Escrow.abi, signer);
-    const escrowBalance = ethers.utils.formatEther(await provider.getBalance(escrowAddress));   
+    const escrowBalance = ethers.utils.formatEther(await provider.getBalance(escrowAddress));
     const isHistoric = escrowBalance === '0.0';
     const eventName = isHistoric ? 'Approved' : 'Deposit';
 
     const logs = await provider.getLogs({
       address: escrowAddress,
       fromBlock: factoryLog.blockNumber,
-      topics: [
-        getEventSignature(Escrow.abi, eventName),
-      ]
+      topics: [getEventSignature(Escrow.abi, eventName)]
     });
 
     if (logs.length > 0) {
@@ -53,6 +62,23 @@ async function getEscrows() {
 
       addContract(++NUM_CONTRACTS, escrowContract, arbiter, beneficiary, depositor, value, isHistoric);
     }
+
+    escrowObj.contract.push(escrowContract);
+    escrowObj.arbiter.push(arbiter);
+    escrowObj.isHistoric.push(isHistoric);
+  });
+
+  var allButtonsOnPage = document.querySelectorAll('.button-approve');
+  console.log(allButtonsOnPage)
+
+  allButtonsOnPage.forEach((button, ii) => {
+    console.log(ii)
+    button.addEventListener('click', function () {
+      if (!escrowObj.isHistoric[ii]) {
+        console.log(i);
+        approveCallback(escrowObj.contract[ii], escrowObj.arbiter[ii]);
+      }
+    });
   });
 }
 
@@ -65,4 +91,4 @@ document.getElementById("transact").addEventListener("click", async () => {
 });
 
 getEscrows()
-  .then(() => console.log('--- FIN ---'))
+  .then(() => console.log('why no work?'))

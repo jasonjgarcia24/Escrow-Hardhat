@@ -9,8 +9,17 @@ contract EscrowFactory {
     address public owner;
     uint256 public blockNumber;
 
-    event DeployedFactory(address indexed _escrowFactory, address _owner, uint256 _blockNumber);
-    event DeployedEscrow(address indexed _depositor, address _escrow);
+    event DeployedFactory(
+        address indexed _escrowFactory,
+        address _owner,
+        uint256 _blockNumber
+    );
+    event DeployedEscrow(
+        address indexed _depositor,
+        address indexed _escrow,
+        address _arbiter,
+        address _beneficiary
+    );
 
     constructor() {
         owner = msg.sender;
@@ -18,12 +27,26 @@ contract EscrowFactory {
         emit DeployedFactory(address(this), msg.sender, blockNumber);
     }
 
-    function deployEscrow(address _arbiter, address payable _beneficiary) external onlyOwner {
-        require(msg.sender != _arbiter, "Contract deployer cannot be the arbiter.");
-        require(msg.sender != _beneficiary, "Contract deployer cannot be the beneficiary.");
-        
+    function deployEscrow(address _arbiter, address payable _beneficiary)
+        external
+        onlyOwner
+    {
+        require(
+            msg.sender != _arbiter,
+            "Contract deployer cannot be the arbiter."
+        );
+        require(
+            msg.sender != _beneficiary,
+            "Contract deployer cannot be the beneficiary."
+        );
+
         escrow = new Escrow(_arbiter, _beneficiary, msg.sender);
-        emit DeployedEscrow(msg.sender, address(escrow));
+        emit DeployedEscrow(
+            msg.sender,
+            address(escrow),
+            _arbiter,
+            _beneficiary
+        );
     }
 
     modifier onlyOwner() {

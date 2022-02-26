@@ -2,7 +2,11 @@
 pragma solidity ^0.8.5;
 
 contract Escrow {
-    enum States{ WAITING_FUNDING, FUNDED, PAID }
+    enum States {
+        WAITING_FUNDING,
+        FUNDED,
+        PAID
+    }
 
     address public arbiter;
     address payable public beneficiary;
@@ -26,7 +30,11 @@ contract Escrow {
         uint256 _balance
     );
 
-    constructor (address _arbiter, address payable _beneficiary, address _depositor) {
+    constructor(
+        address _arbiter,
+        address payable _beneficiary,
+        address _depositor
+    ) {
         arbiter = _arbiter;
         beneficiary = _beneficiary;
         depositor = _depositor;
@@ -35,7 +43,13 @@ contract Escrow {
 
     function deposit() internal {
         state = States.FUNDED;
-        emit Deposit(arbiter, beneficiary, depositor, msg.value, address(this).balance);
+        emit Deposit(
+            arbiter,
+            beneficiary,
+            depositor,
+            msg.value,
+            address(this).balance
+        );
     }
 
     function approve() external onlyArbiter onlyUnpaid {
@@ -73,7 +87,10 @@ contract Escrow {
     }
 
     modifier onlyFunded() {
-        require(state == States.FUNDED, "This contract has not been funded yet.");
+        require(
+            state == States.FUNDED,
+            "This contract has not been funded yet."
+        );
         _;
     }
 }
