@@ -1,10 +1,10 @@
 import React from "react";
-import ContractsCreation from './components/Contracts';
+import Contracts from './components/Contracts';
 
 
 const App = () => {
   return (
-    <ContractsCreation />
+    <Contracts />
   );
 }
 

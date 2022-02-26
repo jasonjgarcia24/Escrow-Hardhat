@@ -6,7 +6,7 @@ import EscrowFactory from '../artifacts/contracts/EscrowFactory.sol/EscrowFactor
 import getEventSignature from '../utils/getEventSignature';
 
 
-const ContractsCreation = () => {
+const Contracts = () => {
     const [contractEscrowFactoryAddress, setContractEscrowFactoryAddress] = useState('');
     const [blockEscrowFactoryNumber, setBlockEscrowFactoryNumber] = useState('');
     const [escrows, setEscrows] = useState('');
@@ -74,26 +74,22 @@ const ContractsCreation = () => {
     }
 
     const fetchEscrowFactory = async () => {
-        console.log('fetchEscrowFactory')
         const provider = getProvider();
 
-        console.log('FETCH ESCROW FACTORY (ADDR): ', contractEscrowFactoryAddress)
-        console.log('FETCH ESCROW FACTORY (BLOCK NUM): ', blockEscrowFactoryNumber)
+        console.log('FACTORY ADDR: ', contractEscrowFactoryAddress)
+        console.log('FACTORY BLOCK: ', blockEscrowFactoryNumber)
 
         const factoryLogs = await provider.getLogs({
             address: contractEscrowFactoryAddress,
             fromBlock: parseInt(blockEscrowFactoryNumber),
             topics: [getEventSignature(EscrowFactory.abi, 'DeployedEscrow')]
         });
-        console.log(factoryLogs)
 
         return factoryLogs;
     }
 
     const fetchEscrows = async () => {
         if (!contractEscrowFactoryAddress) { return }
-
-        console.log('fetchEscrows')
 
         const provider = getProvider();
         const factoryLogs = await fetchEscrowFactory();
@@ -104,21 +100,35 @@ const ContractsCreation = () => {
             const escrowBalance = ethers.utils.formatEther(await provider.getBalance(escrowAddress));
             const isHistoric = escrowBalance === '0.0';
             const eventName = isHistoric ? 'Approved' : 'Deposit';
+            console.log('escrowBalance: ', escrowBalance)
+            console.log('isHistoric: ', isHistoric)
 
             const logs = await provider.getLogs({
                 address: escrowAddress,
                 fromBlock: factoryLog.blockNumber,
                 topics: [getEventSignature(Escrow.abi, eventName)]
             });
+            console.log(logs)
 
             if (logs.length > 0) {
+                const latestLog = logs[logs.length - 1];
+                const value = logs.reduce((prev, curr) => {
+                    const reduced = parseInt(prev.match(/.{1,66}/g)[0]) + parseInt(curr.data.match(/.{1,66}/g)[0]);
+                    const returns = ethers.utils.hexZeroPad(
+                        ethers.utils.hexValue(ethers.BigNumber.from(
+                            reduced.toString()
+                        )), 32
+                    ) + '0'.repeat(64 * (logs.length - 1))
+                    return returns
+                }, ethers.utils.hexZeroPad('0x00', 32 * logs.length));
+
                 return {
                     id: id,
-                    arbiter: ethers.utils.hexStripZeros(logs[0].topics[1], 32),
-                    beneficiary: ethers.utils.hexStripZeros(logs[0].topics[2], 32),
-                    depositor: ethers.utils.hexStripZeros(logs[0].topics[3], 32),
+                    arbiter: ethers.utils.hexStripZeros(latestLog.topics[1], 32),
+                    beneficiary: ethers.utils.hexStripZeros(latestLog.topics[2], 32),
+                    depositor: ethers.utils.hexStripZeros(latestLog.topics[3], 32),
                     contract: escrowAddress,
-                    value: ethers.utils.formatEther(logs[0].data.match(/.{1,66}/g)[0]),
+                    value: ethers.utils.formatEther(value.match(/.{1,66}/g)[0]),
                     depositButtonId: `deposit-${id}`,
                     approveButtonId: `approve-${id}`,
                     depositUpgradeId: `eth-upgrade-${id}`,
@@ -133,6 +143,7 @@ const ContractsCreation = () => {
 
     const deposit = async (escrowAddress, value) => {
         console.log('DEPOSITING TO: ', escrowAddress);
+        console.log('DEPOSITING VALUE: ', value);
 
         const provider = getProvider();
         const signer = provider.getSigner(0);
@@ -148,6 +159,8 @@ const ContractsCreation = () => {
 
     const renderEscrows = () => {
         if (escrows.length > 0) {
+            console.log('renderEscrows');
+
             const elements = (
                 escrows.map(escrow => {
                     return (
@@ -179,7 +192,13 @@ const ContractsCreation = () => {
                                         <div
                                             className="button button-deposit container-button-deposit"
                                             id={escrow.depositButtonId}
-                                        // onClick={() => deposit(escrow.contract, escrow.value)}
+                                            onClick={(e) => {
+                                                const depositUpgradeId = e.target.id.replace('deposit-', 'eth-upgrade-');
+                                                const valueBigNumber = ethers.BigNumber.from(
+                                                    ethers.utils.parseEther(document.getElementById(depositUpgradeId).value)
+                                                );
+                                                deposit(escrow.contract, valueBigNumber)
+                                            }}
                                         >
                                             Deposit
                                         </div>
@@ -217,6 +236,7 @@ const ContractsCreation = () => {
         window.localStorage.setItem("contractValues", JSON.stringify(contractValues));
     });
 
+    // Update with Factory update
     useEffect(() => {
         fetchEscrows()
     }, [contractEscrowFactoryAddress, blockEscrowFactoryNumber]);
@@ -259,4 +279,4 @@ const ContractsCreation = () => {
     )
 }
 
-export default ContractsCreation;
+export default Contracts;
