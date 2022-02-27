@@ -112,7 +112,7 @@ input[type="text"] {
   font-weight: bold;
 }
 
-.existing-contract .complete {
+.complete {
   color: #5aa75a;
   text-align: center;
 }

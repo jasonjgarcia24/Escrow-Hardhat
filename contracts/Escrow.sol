@@ -52,18 +52,19 @@ contract Escrow {
         );
     }
 
-    function approve() external onlyArbiter onlyUnpaid {
-        state = States.FUNDED;
+    function approve() external onlyArbiter onlyFunded onlyUnpaid {
+        isApproved = true;
+
         emit Approved(arbiter, beneficiary, depositor, address(this).balance);
 
         payout();
-        isApproved = true;
     }
 
-    function payout() internal onlyFunded {
+    function payout() internal onlyFunded onlyUnpaid {
+        state = States.PAID;
+        
         uint256 _value = address(this).balance;
         beneficiary.transfer(_value);
-        state = States.PAID;
     }
 
     receive() external payable onlyDepositor onlyUnpaid {

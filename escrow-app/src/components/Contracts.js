@@ -7,9 +7,15 @@ import getEventSignature from '../utils/getEventSignature';
 
 
 const Contracts = () => {
-    const [contractEscrowFactoryAddress, setContractEscrowFactoryAddress] = useState('');
+    const [escrowFactoryContractAddress, setContractEscrowFactoryAddress] = useState('');
     const [blockEscrowFactoryNumber, setBlockEscrowFactoryNumber] = useState('');
     const [escrows, setEscrows] = useState('');
+
+    const setContractId = (escrowAddress) => `contract-${escrowAddress.toUpperCase()}`.replace(/\s/g, '');
+    const setDepositButtonId = (escrowAddress) => `deposit-${escrowAddress.toUpperCase()}`;
+    const setApproveButtonId = (escrowAddress) => `approve-${escrowAddress.toUpperCase()}`;
+    const setDepositUpgradeId = (escrowAddress) => `eth-upgrade-${escrowAddress.toUpperCase()}`;
+    const setValueId = (escrowAddress) => `value-${escrowAddress.toUpperCase()}`;
 
     const deployEscrowFactory = async () => {
         console.log('Deploying EscrowFactory contract...');
@@ -19,16 +25,18 @@ const Contracts = () => {
         console.log('Factory Contract owner: ', await signer.getAddress());
 
         // Deploy Escrow Factory
-        const contractEscrowFactory = new ethers.ContractFactory(EscrowFactory.abi, EscrowFactory.bytecode, signer);
-        const tx = await contractEscrowFactory.deploy();
+        const escrowFactoryContract = new ethers.ContractFactory(EscrowFactory.abi, EscrowFactory.bytecode, signer);
+        const tx = await escrowFactoryContract.deploy();
         const blockNumber = await tx.blockNumber();
+        console.log('escrowFactoryContract: ', escrowFactoryContract);
+
 
         setContractEscrowFactoryAddress(tx.address);
         setBlockEscrowFactoryNumber(blockNumber.toNumber().toString());
-        console.log('Factory Contract address: ', contractEscrowFactoryAddress);
+        console.log('Factory Contract address: ', escrowFactoryContractAddress);
 
         // Parse Deployed Factory event
-        const filter = { address: contractEscrowFactoryAddress };
+        const filter = { address: escrowFactoryContractAddress };
         provider.on(filter, (log, event) => {
             console.log('------ ESCROW FACTORY CONTRACT LISTENER ------')
             console.log('LOG: ', log);
@@ -47,20 +55,21 @@ const Contracts = () => {
         console.log('Escrow Contract owner: ', await signer.getAddress());
 
         // Deploy Escrow
-        const contractEscrowFactory = new ethers.Contract(
-            contractEscrowFactoryAddress,
+        const escrowFactoryContract = new ethers.Contract(
+            escrowFactoryContractAddress,
             EscrowFactory.abi,
             signer
         );
-        let tx = await contractEscrowFactory.deployEscrow(arbiter, beneficiary);
+        let tx = await escrowFactoryContract.deployEscrow(arbiter, beneficiary);
 
         // Parse Deployed Escrow event
         const receipt = await tx.wait();
-        const topic = contractEscrowFactory.interface.getEventTopic('DeployedEscrow');
+        const topic = escrowFactoryContract.interface.getEventTopic('DeployedEscrow');
         const log = receipt.logs.find(x => x.topics.indexOf(topic) >= 0);
-        const deployedEvent = contractEscrowFactory.interface.parseLog(log);
-        const contractEscrowAddress = deployedEvent.args['_escrow'];
-        const filter = { address: contractEscrowAddress };
+        const deployedEvent = escrowFactoryContract.interface.parseLog(log);
+        const escrowContractAddress = deployedEvent.args['_escrow'];
+        const escrowContract = new ethers.Contract(escrowContractAddress, Escrow.abi, signer);
+        const filter = { address: escrowContractAddress };
 
         provider.on(filter, (log, event) => {
             console.log('------ ESCROW CONTRACT LISTENER ------')
@@ -69,18 +78,34 @@ const Contracts = () => {
         });
 
         // Deposit funds to Escrow
-        await deposit(contractEscrowAddress, value);
+        await deposit(escrowContractAddress, value);
         await fetchEscrows();
+
+        // Set Contract approve listener
+        const depositButtonId = setDepositButtonId(escrowContractAddress);
+        const approveButtonId = setApproveButtonId(escrowContractAddress);
+        const depositUpgradeId = setDepositUpgradeId(escrowContractAddress);
+
+        escrowContract.on('Approved', () => {
+            const depositButton = document.getElementById(depositButtonId);
+            depositButton.parentNode.removeChild(depositButton);
+
+            const depositUpgradeGroup = document.getElementById(depositUpgradeId);
+            depositUpgradeGroup.parentNode.removeChild(depositUpgradeGroup);
+
+            document.getElementById(approveButtonId).className = "complete";
+            document.getElementById(approveButtonId).innerText = "✓ It's been approved!";
+        });
     }
 
     const fetchEscrowFactory = async () => {
         const provider = getProvider();
 
-        console.log('FACTORY ADDR: ', contractEscrowFactoryAddress)
+        console.log('FACTORY ADDR: ', escrowFactoryContractAddress)
         console.log('FACTORY BLOCK: ', blockEscrowFactoryNumber)
 
         const factoryLogs = await provider.getLogs({
-            address: contractEscrowFactoryAddress,
+            address: escrowFactoryContractAddress,
             fromBlock: parseInt(blockEscrowFactoryNumber),
             topics: [getEventSignature(EscrowFactory.abi, 'DeployedEscrow')]
         });
@@ -89,26 +114,22 @@ const Contracts = () => {
     }
 
     const fetchEscrows = async () => {
-        if (!contractEscrowFactoryAddress) { return }
+        if (!escrowFactoryContractAddress) { return }
 
         const provider = getProvider();
         const factoryLogs = await fetchEscrowFactory();
-        console.log('FACTORY LOGS: ', factoryLogs)
 
         const allEscrows = await Promise.all(factoryLogs.map(async (factoryLog, id) => {
             const escrowAddress = ethers.utils.hexStripZeros(factoryLog.topics[2].match(/.{1,66}/g)[0], 32);
             const escrowBalance = ethers.utils.formatEther(await provider.getBalance(escrowAddress));
             const isHistoric = escrowBalance === '0.0';
             const eventName = isHistoric ? 'Approved' : 'Deposit';
-            console.log('escrowBalance: ', escrowBalance)
-            console.log('isHistoric: ', isHistoric)
 
             const logs = await provider.getLogs({
                 address: escrowAddress,
                 fromBlock: factoryLog.blockNumber,
                 topics: [getEventSignature(Escrow.abi, eventName)]
             });
-            console.log(logs)
 
             if (logs.length > 0) {
                 const latestLog = logs[logs.length - 1];
@@ -129,10 +150,11 @@ const Contracts = () => {
                     depositor: ethers.utils.hexStripZeros(latestLog.topics[3], 32),
                     contract: escrowAddress,
                     value: ethers.utils.formatEther(value.match(/.{1,66}/g)[0]),
-                    depositButtonId: `deposit-${id}`,
-                    approveButtonId: `approve-${id}`,
-                    depositUpgradeId: `eth-upgrade-${id}`,
-                    valueId: `value-${id}`,
+                    contractId: setContractId(escrowAddress),
+                    depositButtonId: setDepositButtonId(escrowAddress),
+                    approveButtonId: setApproveButtonId(escrowAddress),
+                    depositUpgradeId: setDepositUpgradeId(escrowAddress),
+                    valueId: setValueId(escrowAddress),
                     isHistoric: isHistoric,
                 };
             }
@@ -157,10 +179,24 @@ const Contracts = () => {
         await fetchEscrows();
     }
 
+    const approve = async (escrowAddress) => {
+        console.log('Approving escrow: ', escrowAddress)
+
+        const provider = getProvider();
+        const contractId = setContractId(escrowAddress);
+
+        // TODO: Signer will need to change to be queried from MetaMask
+        const signerArbiter = provider.getSigner(2);
+
+        const escrowContractAddress = document.getElementById(contractId).innerHTML.replace(/\s/g, '');
+        const escrowContract = new ethers.Contract(escrowContractAddress, Escrow.abi, provider);
+
+        await escrowContract.connect(signerArbiter).approve();
+        console.log('APPROVED!!!!')
+    }
+
     const renderEscrows = () => {
         if (escrows.length > 0) {
-            console.log('renderEscrows');
-
             const elements = (
                 escrows.map(escrow => {
                     return (
@@ -180,7 +216,7 @@ const Contracts = () => {
                                 </li>
                                 <li>
                                     <div> Contract </div>
-                                    <div> {escrow.contract} </div>
+                                    <div id={escrow.contractId}> {escrow.contract} </div>
                                 </li>
                                 <li>
                                     <div> Value </div>
@@ -212,7 +248,17 @@ const Contracts = () => {
                                     </div>
                                 }
 
-                                <div className="button button-approve" id={escrow.approveButtonId}> Approve </div>
+                                <div
+                                    className={!escrow.isHistoric ? "button button-approve" : "complete"}
+                                    id={escrow.approveButtonId}
+                                    onClick={(e) => {
+                                        if (escrow.isHistoric) return
+
+                                        const address = e.target.id.replace('approve-', '');
+                                        approve(address)
+                                    }}
+                                > {!escrow.isHistoric ? "Approve" : "✓ It's been approved!"}
+                                </div>
                             </ul>
                         </div>
                     )
@@ -226,20 +272,20 @@ const Contracts = () => {
     // Get from local storage
     useEffect(() => {
         const contractValues = JSON.parse(window.localStorage.getItem('contractValues'));
-        setContractEscrowFactoryAddress(contractValues.contractEscrowFactoryAddress);
+        setContractEscrowFactoryAddress(contractValues.escrowFactoryContractAddress);
         setBlockEscrowFactoryNumber(contractValues.blockEscrowFactoryNumber);
     }, [])
 
     // Save to local storage
     useEffect(() => {
-        const contractValues = { contractEscrowFactoryAddress, blockEscrowFactoryNumber };
+        const contractValues = { escrowFactoryContractAddress, blockEscrowFactoryNumber };
         window.localStorage.setItem("contractValues", JSON.stringify(contractValues));
     });
 
     // Update with Factory update
     useEffect(() => {
         fetchEscrows()
-    }, [contractEscrowFactoryAddress, blockEscrowFactoryNumber]);
+    }, [escrowFactoryContractAddress, blockEscrowFactoryNumber]);
 
     return (
         <div className="contract-container">
